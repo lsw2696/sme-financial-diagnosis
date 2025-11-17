@@ -10,23 +10,64 @@ export function compareRatios(
 ): DiagnosisResult {
   const comparisons: ComparisonResult[] = []
 
+  // 1. 유동비율
   if (companyRatios.current_ratio && industryAvg.current_ratio) {
-    comparisons.push(compareRatio('current_ratio', '유동비율', companyRatios.current_ratio, industryAvg.current_ratio, true))
+    comparisons.push(compareRatio('current_ratio', '유동비율 (%)', companyRatios.current_ratio, industryAvg.current_ratio, true))
   }
+  
+  // 2. 당좌비율
+  if (companyRatios.quick_ratio && industryAvg.quick_ratio) {
+    comparisons.push(compareRatio('quick_ratio', '당좌비율 (%)', companyRatios.quick_ratio, industryAvg.quick_ratio, true))
+  }
+  
+  // 3. 부채비율
   if (companyRatios.debt_ratio && industryAvg.debt_ratio) {
-    comparisons.push(compareRatio('debt_ratio', '부채비율', companyRatios.debt_ratio, industryAvg.debt_ratio, false))
+    comparisons.push(compareRatio('debt_ratio', '부채비율 (%)', companyRatios.debt_ratio, industryAvg.debt_ratio, false))
   }
+  
+  // 4. 자기자본비율
   if (companyRatios.equity_ratio && industryAvg.equity_ratio) {
-    comparisons.push(compareRatio('equity_ratio', '자기자본비율', companyRatios.equity_ratio, industryAvg.equity_ratio, true))
+    comparisons.push(compareRatio('equity_ratio', '자기자본비율 (%)', companyRatios.equity_ratio, industryAvg.equity_ratio, true))
   }
+  
+  // 5. 매출액영업이익률
   if (companyRatios.operating_margin && industryAvg.operating_margin) {
-    comparisons.push(compareRatio('operating_margin', '영업이익률', companyRatios.operating_margin, industryAvg.operating_margin, true))
+    comparisons.push(compareRatio('operating_margin', '매출액영업이익률 (%)', companyRatios.operating_margin, industryAvg.operating_margin, true))
   }
+  
+  // 6. 매출액순이익률
+  if (companyRatios.net_margin && industryAvg.net_margin) {
+    comparisons.push(compareRatio('net_margin', '매출액순이익률 (%)', companyRatios.net_margin, industryAvg.net_margin, true))
+  }
+  
+  // 7. ROA
   if (companyRatios.roa && industryAvg.roa) {
-    comparisons.push(compareRatio('roa', 'ROA', companyRatios.roa, industryAvg.roa, true))
+    comparisons.push(compareRatio('roa', 'ROA (총자산순이익률, %)', companyRatios.roa, industryAvg.roa, true))
   }
+  
+  // 8. ROE
   if (companyRatios.roe && industryAvg.roe) {
-    comparisons.push(compareRatio('roe', 'ROE', companyRatios.roe, industryAvg.roe, true))
+    comparisons.push(compareRatio('roe', 'ROE (자기자본순이익률, %)', companyRatios.roe, industryAvg.roe, true))
+  }
+  
+  // 9. 총자산회전율
+  if (companyRatios.asset_turnover && industryAvg.asset_turnover) {
+    comparisons.push(compareRatio('asset_turnover', '총자산회전율 (회)', companyRatios.asset_turnover, industryAvg.asset_turnover, true))
+  }
+  
+  // 10. 재고자산회전율
+  if (companyRatios.inventory_turnover && industryAvg.inventory_turnover) {
+    comparisons.push(compareRatio('inventory_turnover', '재고자산회전율 (회)', companyRatios.inventory_turnover, industryAvg.inventory_turnover, true))
+  }
+  
+  // 11. 매출채권회전율
+  if (companyRatios.receivable_turnover && industryAvg.receivable_turnover) {
+    comparisons.push(compareRatio('receivable_turnover', '매출채권회전율 (회)', companyRatios.receivable_turnover, industryAvg.receivable_turnover, true))
+  }
+  
+  // 12. 이자보상배율
+  if (companyRatios.interest_coverage && industryAvg.interest_coverage) {
+    comparisons.push(compareRatio('interest_coverage', '이자보상배율 (배)', companyRatios.interest_coverage, industryAvg.interest_coverage, true))
   }
 
   const riskLevel = calculateRiskLevel(comparisons)
@@ -104,14 +145,21 @@ function generateRecommendations(comparisons: ComparisonResult[]): string[] {
   const dangerRatios = comparisons.filter((c) => c.status === 'danger')
 
   for (const ratio of dangerRatios) {
-    if (ratio.ratio_name === 'current_ratio') recommendations.push('유동비율 개선: 단기차입금 상환 또는 유동자산 증대')
+    if (ratio.ratio_name === 'current_ratio') recommendations.push('유동비율 개선: 단기차입금 상환 또는 유동자산(현금, 매출채권) 증대')
+    if (ratio.ratio_name === 'quick_ratio') recommendations.push('당좌비율 개선: 현금성자산 확보, 재고자산 감축')
     if (ratio.ratio_name === 'debt_ratio') recommendations.push('부채비율 개선: 증자, 이익잉여금 축적, 장기부채 상환')
-    if (ratio.ratio_name === 'operating_margin') recommendations.push('수익성 개선: 원가절감, 고부가가치 제품 확대')
-    if (ratio.ratio_name === 'roa' || ratio.ratio_name === 'roe') recommendations.push('수익성 제고: 매출 증대 및 비용 효율화')
-    if (ratio.ratio_name === 'equity_ratio') recommendations.push('자기자본 강화: 증자 또는 내부유보')
+    if (ratio.ratio_name === 'equity_ratio') recommendations.push('자기자본비율 강화: 증자 또는 내부유보를 통한 자본 확충')
+    if (ratio.ratio_name === 'operating_margin') recommendations.push('영업이익률 개선: 원가절감, 판매가격 조정, 고부가가치 제품 확대')
+    if (ratio.ratio_name === 'net_margin') recommendations.push('순이익률 개선: 영업외비용 절감, 이자비용 감축')
+    if (ratio.ratio_name === 'roa') recommendations.push('ROA 제고: 자산 효율화 및 수익성 개선')
+    if (ratio.ratio_name === 'roe') recommendations.push('ROE 제고: 자기자본 대비 수익성 향상 필요')
+    if (ratio.ratio_name === 'asset_turnover') recommendations.push('자산회전율 개선: 매출 증대 또는 유휴자산 처분')
+    if (ratio.ratio_name === 'inventory_turnover') recommendations.push('재고회전율 개선: 재고관리 효율화, 적정재고 유지')
+    if (ratio.ratio_name === 'receivable_turnover') recommendations.push('채권회전율 개선: 외상매출금 회수 강화, 신용관리')
+    if (ratio.ratio_name === 'interest_coverage') recommendations.push('이자보상배율 개선: 영업이익 증대 또는 차입금 감축')
   }
 
-  if (recommendations.length === 0) recommendations.push('현 재무상태 유지, 지속 모니터링 권장')
+  if (recommendations.length === 0) recommendations.push('현 재무상태 양호, 지속적 모니터링 및 유지 권장')
   return recommendations
 }
 

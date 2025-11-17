@@ -229,48 +229,58 @@ app.get('/', (c) => {
                             <div class="grid md:grid-cols-3 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">매출액 *</label>
-                                    <input type="number" name="sales" required step="0.01"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <input type="text" name="sales" required data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="5,000">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">유동자산 *</label>
-                                    <input type="number" name="current_assets" required step="0.01"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <input type="text" name="current_assets" required data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="2,000">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">유동부채 *</label>
-                                    <input type="number" name="current_liabilities" required step="0.01"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <input type="text" name="current_liabilities" required data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="1,500">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">총자산 *</label>
-                                    <input type="number" name="total_assets" required step="0.01"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <input type="text" name="total_assets" required data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="4,000">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">총부채 *</label>
-                                    <input type="number" name="total_liabilities" required step="0.01"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <input type="text" name="total_liabilities" required data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="2,500">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">자기자본 *</label>
-                                    <input type="number" name="equity" required step="0.01"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <input type="text" name="equity" required data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="1,500">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">영업이익 *</label>
-                                    <input type="number" name="operating_income" required step="0.01"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <input type="text" name="operating_income" required data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="250">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">당기순이익 *</label>
-                                    <input type="number" name="net_income" required step="0.01"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <input type="text" name="net_income" required data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="180">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">재고자산 (선택)</label>
-                                    <input type="number" name="inventory" step="0.01"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">재고자산</label>
+                                    <input type="text" name="inventory" data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="300">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">매출채권</label>
+                                    <input type="text" name="receivables" data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="600">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">이자비용</label>
+                                    <input type="text" name="interest_expense" data-number-input
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="40">
                                 </div>
                             </div>
                         </div>
@@ -304,6 +314,36 @@ app.get('/', (c) => {
         </div>
 
         <script>
+            // 천단위 콤마 추가 함수
+            function formatNumber(num) {
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+            }
+
+            // 콤마 제거 함수
+            function removeCommas(str) {
+                return str.replace(/,/g, '')
+            }
+
+            // 숫자 입력 필드에 콤마 자동 추가
+            document.addEventListener('DOMContentLoaded', () => {
+                const numberInputs = document.querySelectorAll('[data-number-input]')
+                numberInputs.forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        let value = removeCommas(e.target.value)
+                        if (value && !isNaN(value)) {
+                            e.target.value = formatNumber(value)
+                        }
+                    })
+                    
+                    input.addEventListener('blur', (e) => {
+                        let value = removeCommas(e.target.value)
+                        if (value && !isNaN(value)) {
+                            e.target.value = formatNumber(parseFloat(value))
+                        }
+                    })
+                })
+            })
+
             // 업종 목록 로드
             async function loadIndustries() {
                 const response = await fetch('/api/industries')
@@ -331,7 +371,9 @@ app.get('/', (c) => {
                 const data = {}
                 formData.forEach((value, key) => {
                     if (value) {
-                        data[key] = isNaN(value) ? value : parseFloat(value)
+                        // 콤마 제거 후 숫자로 변환
+                        const cleanValue = removeCommas(value)
+                        data[key] = isNaN(cleanValue) ? value : parseFloat(cleanValue)
                     }
                 })
 
