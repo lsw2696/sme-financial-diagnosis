@@ -501,25 +501,52 @@ app.get('/standards', (c) => {
                     return
                 }
 
-                tbody.innerHTML = data.map(row => {
-                    return '<tr class="hover:bg-gray-50">' +
-                        '<td class="border p-2 text-xs">' + row.industry_code + '<br/><span class="text-gray-500">' + (row.industry_name || '') + '</span></td>' +
-                        '<td class="border p-2 text-center">' + row.firm_size_type + '</td>' +
-                        '<td class="border p-2 text-center">' + row.year + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.current_ratio || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.quick_ratio || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.debt_ratio || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.equity_ratio || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.operating_margin || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.net_margin || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.roa || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.roe || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.asset_turnover || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.inventory_turnover || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.receivable_turnover || '-') + '</td>' +
-                        '<td class="border p-2 text-right">' + (row.interest_coverage || '-') + '</td>' +
-                        '</tr>'
-                }).join('')
+                // 업종별로 그룹화
+                const grouped = {}
+                data.forEach(row => {
+                    const key = row.industry_code
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            industry_code: row.industry_code,
+                            industry_name: row.industry_name,
+                            rows: []
+                        }
+                    }
+                    grouped[key].rows.push(row)
+                })
+
+                // HTML 생성
+                let html = ''
+                Object.values(grouped).forEach(group => {
+                    const rowCount = group.rows.length
+                    group.rows.forEach((row, idx) => {
+                        html += '<tr class="hover:bg-gray-50">'
+                        
+                        // 첫 번째 행에만 업종 표시 (rowspan 사용)
+                        if (idx === 0) {
+                            html += '<td class="border p-2 text-xs align-top" rowspan="' + rowCount + '">' + 
+                                    group.industry_code + '<br/><span class="text-gray-500">' + (group.industry_name || '') + '</span></td>'
+                        }
+                        
+                        html += '<td class="border p-2 text-center">' + row.firm_size_type + '</td>' +
+                                '<td class="border p-2 text-center">' + row.year + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.current_ratio || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.quick_ratio || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.debt_ratio || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.equity_ratio || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.operating_margin || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.net_margin || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.roa || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.roe || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.asset_turnover || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.inventory_turnover || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.receivable_turnover || '-') + '</td>' +
+                                '<td class="border p-2 text-right">' + (row.interest_coverage || '-') + '</td>' +
+                                '</tr>'
+                    })
+                })
+                
+                tbody.innerHTML = html
             }
 
             loadData()
@@ -738,35 +765,51 @@ app.get('/', (c) => {
             document.addEventListener('DOMContentLoaded', () => {
                 const numberInputs = document.querySelectorAll('[data-number-input]')
                 numberInputs.forEach(input => {
+                    // input 이벤트로 실시간 콤마 표시
                     input.addEventListener('input', (e) => {
-                        const cursorPos = e.target.selectionStart
-                        const oldValue = e.target.value
-                        const oldLength = oldValue.length
+                        let value = e.target.value
                         
-                        // 숫자와 소수점만 남기기
-                        let value = oldValue.replace(/[^\d.]/g, '')
+                        // 숫자와 소수점, 마이너스만 허용
+                        value = value.replace(/[^\d.-]/g, '')
                         
-                        // 소수점이 여러개면 첫번째만 남기기
+                        // 마이너스는 맨 앞에만
+                        if (value.indexOf('-') > 0) {
+                            value = value.replace(/-/g, '')
+                        }
+                        
+                        // 소수점 중복 제거
                         const parts = value.split('.')
                         if (parts.length > 2) {
                             value = parts[0] + '.' + parts.slice(1).join('')
                         }
                         
-                        if (value) {
+                        e.target.value = value
+                    })
+                    
+                    // blur 이벤트로 포맷팅 (포커스 벗어날 때)
+                    input.addEventListener('blur', (e) => {
+                        let value = e.target.value.replace(/,/g, '')
+                        
+                        if (value && value !== '-' && !isNaN(value)) {
+                            const num = parseFloat(value)
                             const [integer, decimal] = value.split('.')
+                            
+                            // 정수부분에 콤마 추가
                             let formatted = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                            
+                            // 소수점 있으면 추가
                             if (decimal !== undefined) {
                                 formatted += '.' + decimal
                             }
-                            e.target.value = formatted
                             
-                            // 커서 위치 조정
-                            const newLength = formatted.length
-                            const diff = newLength - oldLength
-                            e.target.setSelectionRange(cursorPos + diff, cursorPos + diff)
-                        } else {
-                            e.target.value = ''
+                            e.target.value = formatted
                         }
+                    })
+                    
+                    // focus 이벤트로 콤마 제거 (입력 편의)
+                    input.addEventListener('focus', (e) => {
+                        let value = e.target.value.replace(/,/g, '')
+                        e.target.value = value
                     })
                 })
             })
