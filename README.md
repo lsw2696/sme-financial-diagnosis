@@ -1,21 +1,181 @@
-```txt
-npm install
-npm run dev
+# 중소기업 재무진단 시스템
+
+## 프로젝트 개요
+
+**신용보증기금 재무비율 기준**을 활용한 중소기업 재무 자동진단 웹 애플리케이션입니다.
+
+### 주요 기능
+
+✅ **완료된 기능**
+- 📊 재무제표 입력 (재무상태표 + 손익계산서)
+- 🔢 재무비율 자동 계산 (12개 주요 지표)
+- 📈 업종 평균 대비 비교 분석
+- 🎯 리스크 레벨 자동 판정 (HIGH/MEDIUM/LOW)
+- 💡 개선 권고사항 자동 생성
+- 📋 진단 이력 저장 및 조회
+- 🏢 52개 업종별 기준 데이터 (2022-2023)
+- 📱 반응형 UI (TailwindCSS)
+
+### 계산 가능한 재무비율
+
+1. **안전성 지표**
+   - 유동비율 = (유동자산 / 유동부채) × 100
+   - 당좌비율 = (당좌자산 / 유동부채) × 100
+   - 부채비율 = (총부채 / 자기자본) × 100
+   - 자기자본비율 = (자기자본 / 총자산) × 100
+
+2. **수익성 지표**
+   - 매출액영업이익률 = (영업이익 / 매출액) × 100
+   - 매출액순이익률 = (당기순이익 / 매출액) × 100
+   - ROA (총자산순이익률) = (당기순이익 / 총자산) × 100
+   - ROE (자기자본순이익률) = (당기순이익 / 자기자본) × 100
+
+3. **활동성 지표**
+   - 총자산회전율 = 매출액 / 총자산
+   - 재고자산회전율 = 매출액 / 재고자산
+   - 매출채권회전율 = 매출액 / 매출채권
+   - 이자보상배율 = 영업이익 / 이자비용
+
+## 공개 URL
+
+- **개발 서버**: https://3000-iz9isfoa1wiovn6biofxf-de59bda9.sandbox.novita.ai
+- **GitHub**: (설정 후 업데이트 예정)
+
+## 데이터 구조
+
+### 1. 업종코드 (industry_codes)
+- 한국표준산업분류 기준
+- 제조업, 건설업, 도소매업, 정보통신 등 52개 업종
+- 카테고리별 그룹핑 제공
+
+### 2. 신보 재무비율 기준 (sinbo_ratios)
+- 2022-2023년 기준 데이터
+- 업종별 × 기업규모별(외감/비외감) 평균값
+- 52개 레코드 × 12개 재무비율
+
+### 3. 진단 이력 (diagnosis_history)
+- 기업별 재무진단 결과 저장
+- 입력 재무제표 + 계산된 비율 + 진단 결과
+- JSON 형태의 상세 진단 리포트
+
+## 스토리지 서비스
+
+- **Cloudflare D1 Database**: SQLite 기반 전역 분산 데이터베이스
+  - 업종 기준 데이터
+  - 재무비율 평균값
+  - 진단 이력
+
+## 사용 방법
+
+### 1. 기본 정보 입력
+- 회사명, 업종(52개 중 선택), 기준년도, 기업규모(외감/비외감)
+
+### 2. 재무제표 입력
+**재무상태표** (단위: 백만원)
+- 유동자산, 유동부채, 총자산, 총부채, 자기자본
+- 선택: 재고자산, 매출채권
+
+**손익계산서** (단위: 백만원)
+- 매출액, 영업이익, 당기순이익
+- 선택: 이자비용
+
+### 3. 진단 실행
+- "재무진단 실행" 버튼 클릭
+- 자동으로 12개 재무비율 계산
+- 업종 평균과 비교 분석
+- 리스크 레벨 및 개선 권고사항 제공
+
+### 4. 결과 확인
+- 📊 비율별 비교 테이블
+- 🎯 상태별 색상 구분 (우수/보통/개선필요)
+- 💬 종합 의견 및 개선 권고사항
+- 🔍 진단 이력 조회 기능
+
+## 기술 스택
+
+### Backend
+- **Hono**: 경량 고속 웹 프레임워크
+- **Cloudflare Workers**: 엣지 런타임
+- **D1 Database**: SQLite 기반 분산 DB
+
+### Frontend
+- **TailwindCSS**: 유틸리티 기반 CSS
+- **Font Awesome**: 아이콘
+- **Axios**: HTTP 클라이언트
+
+### 개발 도구
+- **Vite**: 빌드 도구
+- **Wrangler**: Cloudflare CLI
+- **PM2**: 프로세스 관리 (개발 환경)
+- **TypeScript**: 타입 안전성
+
+## 배포 상태
+
+- ✅ 로컬 개발 환경 실행 중
+- ⏳ Cloudflare Pages 프로덕션 배포 대기
+  - D1 프로덕션 데이터베이스 생성 필요
+  - Cloudflare API 키 설정 후 배포 가능
+
+## 개발 명령어
+
+```bash
+# 로컬 개발 서버 (PM2)
+npm run build              # 빌드
+pm2 start ecosystem.config.cjs  # 시작
+pm2 logs --nostream        # 로그 확인
+pm2 restart webapp         # 재시작
+
+# 데이터베이스 관리
+npm run db:migrate:local   # 로컬 마이그레이션
+npm run db:seed            # 샘플 데이터 입력
+npm run db:reset           # DB 초기화
+
+# 배포
+npm run deploy             # Cloudflare Pages 배포
 ```
 
-```txt
-npm run deploy
+## 프로젝트 구조
+
+```
+webapp/
+├── src/
+│   ├── index.tsx          # 메인 애플리케이션
+│   ├── types.ts           # TypeScript 타입 정의
+│   └── utils/
+│       ├── calculator.ts  # 재무비율 계산 로직
+│       └── diagnosis.ts   # 진단 및 비교 로직
+├── migrations/
+│   └── 0001_initial_schema.sql  # DB 스키마
+├── data/
+│   ├── industry_codes.csv       # 업종코드
+│   ├── sinbo_ratios_sample.csv  # 신보 기준 데이터
+│   ├── seed.sql                 # 업종 시드 데이터
+│   └── seed_ratios.sql          # 비율 시드 데이터
+├── scripts/
+│   └── import-ratios.js   # CSV → SQL 변환
+├── wrangler.jsonc         # Cloudflare 설정
+├── ecosystem.config.cjs   # PM2 설정
+└── package.json
 ```
 
-[For generating/synchronizing types based on your Worker configuration run](https://developers.cloudflare.com/workers/wrangler/commands/#types):
+## 향후 개선 계획
 
-```txt
-npm run cf-typegen
-```
+🔲 **미구현 기능**
+- 📄 PDF 리포트 다운로드 기능
+- 📤 엑셀 파일 업로드 및 자동 파싱
+- 📊 연도별 추이 그래프
+- 📧 이메일 리포트 발송
+- 🔐 사용자 인증 및 관리
 
-Pass the `CloudflareBindings` as generics when instantiation `Hono`:
+## 라이센스
 
-```ts
-// src/index.ts
-const app = new Hono<{ Bindings: CloudflareBindings }>()
-```
+MIT License
+
+## 개발자
+
+우서기 | 종합컨설팅 전문가
+- 컨설턴트, 경영지도사, 개업공인중개사, 경매/세무회계 전문
+
+---
+
+**최종 업데이트**: 2025-11-17
