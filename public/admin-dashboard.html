@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드 | 재무진단 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- 헤더 -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold">
+                    <i class="fas fa-user-shield mr-2"></i>
+                    관리자 대시보드
+                </h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="adminName" class="text-sm"></span>
+                <button id="logoutBtn" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600">
+                    <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- 통계 카드 -->
+        <div class="grid md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">총 진단 건수</p>
+                        <p id="totalCount" class="text-3xl font-bold text-blue-600">0</p>
+                    </div>
+                    <i class="fas fa-chart-line text-4xl text-blue-600"></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">오늘 진단</p>
+                        <p id="todayCount" class="text-3xl font-bold text-green-600">0</p>
+                    </div>
+                    <i class="fas fa-calendar-day text-4xl text-green-600"></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">HIGH 리스크</p>
+                        <p id="highRisk" class="text-3xl font-bold text-red-600">0</p>
+                    </div>
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-600"></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">LOW 리스크</p>
+                        <p id="lowRisk" class="text-3xl font-bold text-green-600">0</p>
+                    </div>
+                    <i class="fas fa-check-circle text-4xl text-green-600"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 필터 -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-bold mb-4">
+                <i class="fas fa-filter mr-2"></i>필터
+            </h2>
+            <div class="grid md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">검색</label>
+                    <input type="text" id="searchInput" placeholder="회사명, 연락처"
+                        class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">업종</label>
+                    <select id="industryFilter" class="w-full px-3 py-2 border rounded-lg">
+                        <option value="">전체</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">시작일</label>
+                    <input type="date" id="startDate" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">종료일</label>
+                    <input type="date" id="endDate" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+            </div>
+            <div class="mt-4 flex space-x-2">
+                <button id="applyFilter" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-search mr-2"></i>조회
+                </button>
+                <button id="resetFilter" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">
+                    <i class="fas fa-redo mr-2"></i>초기화
+                </button>
+                <button id="exportExcel" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                    <i class="fas fa-file-excel mr-2"></i>엑셀 다운로드
+                </button>
+            </div>
+        </div>
+
+        <!-- 진단 이력 테이블 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6">
+                <h2 class="text-xl font-bold mb-4">
+                    <i class="fas fa-list mr-2"></i>진단 이력
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-3 text-left">ID</th>
+                                <th class="p-3 text-left">회사명</th>
+                                <th class="p-3 text-left">업종</th>
+                                <th class="p-3 text-left">규모</th>
+                                <th class="p-3 text-left">연도</th>
+                                <th class="p-3 text-left">리스크</th>
+                                <th class="p-3 text-left">이메일</th>
+                                <th class="p-3 text-left">전화번호</th>
+                                <th class="p-3 text-left">진단일시</th>
+                                <th class="p-3 text-center">상세</th>
+                            </tr>
+                        </thead>
+                        <tbody id="diagnosisTable">
+                            <tr>
+                                <td colspan="10" class="p-8 text-center text-gray-500">
+                                    <i class="fas fa-spinner fa-spin text-2xl"></i>
+                                    <p class="mt-2">데이터를 불러오는 중...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상세 모달 -->
+    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold">진단 상세 정보</h3>
+                    <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <div id="detailContent" class="space-y-4">
+                    <!-- 상세 내용이 여기에 표시됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 인증 체크
+        const token = localStorage.getItem('admin_token')
+        const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}')
+
+        if (!token) {
+            window.location.href = '/admin/login'
+        }
+
+        // 관리자 이름 표시
+        document.getElementById('adminName').textContent = adminUser.full_name || adminUser.username || '관리자'
+
+        // 로그아웃
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('admin_token')
+            localStorage.removeItem('admin_user')
+            window.location.href = '/admin/login'
+        })
+
+        // API 호출 헬퍼
+        async function apiCall(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    ...options.headers,
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (response.status === 401) {
+                localStorage.removeItem('admin_token')
+                localStorage.removeItem('admin_user')
+                window.location.href = '/admin/login'
+                throw new Error('인증이 만료되었습니다.')
+            }
+
+            if (!response.ok) {
+                const error = await response.json()
+                throw new Error(error.error || '오류가 발생했습니다.')
+            }
+
+            return response.json()
+        }
+
+        // 통계 로드
+        async function loadStats() {
+            try {
+                const stats = await apiCall('/api/admin/stats')
+                document.getElementById('totalCount').textContent = stats.total
+                document.getElementById('todayCount').textContent = stats.today
+                
+                const highRisk = stats.by_risk?.find(r => r.risk_level === 'HIGH')
+                const lowRisk = stats.by_risk?.find(r => r.risk_level === 'LOW')
+                document.getElementById('highRisk').textContent = highRisk?.count || 0
+                document.getElementById('lowRisk').textContent = lowRisk?.count || 0
+            } catch (error) {
+                console.error('통계 로드 실패:', error)
+            }
+        }
+
+        // 업종 목록 로드
+        async function loadIndustries() {
+            try {
+                const industries = await fetch('/api/industries').then(r => r.json())
+                const select = document.getElementById('industryFilter')
+                industries.forEach(ind => {
+                    const option = document.createElement('option')
+                    option.value = ind.code
+                    option.textContent = `${ind.code} - ${ind.name}`
+                    select.appendChild(option)
+                })
+            } catch (error) {
+                console.error('업종 로드 실패:', error)
+            }
+        }
+
+        // 진단 이력 로드
+        async function loadDiagnoses() {
+            try {
+                const search = document.getElementById('searchInput').value
+                const industry = document.getElementById('industryFilter').value
+                const startDate = document.getElementById('startDate').value
+                const endDate = document.getElementById('endDate').value
+
+                const params = new URLSearchParams()
+                if (search) params.append('search', search)
+                if (industry) params.append('industry', industry)
+                if (startDate) params.append('startDate', startDate)
+                if (endDate) params.append('endDate', endDate)
+
+                const data = await apiCall(`/api/admin/diagnoses?${params.toString()}`)
+                displayDiagnoses(data.data)
+            } catch (error) {
+                console.error('진단 이력 로드 실패:', error)
+                alert('데이터 로드 실패: ' + error.message)
+            }
+        }
+
+        // 진단 이력 표시
+        function displayDiagnoses(diagnoses) {
+            const tbody = document.getElementById('diagnosisTable')
+            
+            if (!diagnoses || diagnoses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="p-8 text-center text-gray-500">데이터가 없습니다.</td></tr>'
+                return
+            }
+
+            const riskColors = {
+                'HIGH': 'bg-red-100 text-red-800',
+                'MEDIUM': 'bg-yellow-100 text-yellow-800',
+                'LOW': 'bg-green-100 text-green-800'
+            }
+
+            tbody.innerHTML = diagnoses.map(d => `
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="p-3">${d.id}</td>
+                    <td class="p-3 font-medium">${d.company_name}</td>
+                    <td class="p-3 text-sm">${d.industry_code}<br><span class="text-gray-500">${d.industry_name || ''}</span></td>
+                    <td class="p-3">${d.firm_size_type}</td>
+                    <td class="p-3">${d.year}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded text-xs font-bold ${riskColors[d.risk_level] || ''}">${d.risk_level}</span>
+                    </td>
+                    <td class="p-3 text-sm">${d.contact_email || '-'}</td>
+                    <td class="p-3 text-sm">${d.contact_phone || '-'}</td>
+                    <td class="p-3 text-sm">${new Date(d.created_at).toLocaleString('ko-KR')}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="showDetail(${d.id})" class="text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('')
+        }
+
+        // 상세 보기
+        async function showDetail(id) {
+            try {
+                const detail = await apiCall(`/api/admin/diagnoses/${id}`)
+                const modal = document.getElementById('detailModal')
+                const content = document.getElementById('detailContent')
+
+                const diagnosisResult = JSON.parse(detail.diagnosis_result || '{}')
+                
+                content.innerHTML = `
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-bold mb-2">기본 정보</h4>
+                            <table class="w-full text-sm">
+                                <tr><td class="py-1 font-medium">회사명:</td><td>${detail.company_name}</td></tr>
+                                <tr><td class="py-1 font-medium">업종:</td><td>${detail.industry_code} - ${detail.industry_name}</td></tr>
+                                <tr><td class="py-1 font-medium">규모:</td><td>${detail.firm_size_type}</td></tr>
+                                <tr><td class="py-1 font-medium">연도:</td><td>${detail.year}</td></tr>
+                                <tr><td class="py-1 font-medium">리스크:</td><td><span class="font-bold">${detail.risk_level}</span></td></tr>
+                            </table>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-2">연락처</h4>
+                            <table class="w-full text-sm">
+                                <tr><td class="py-1 font-medium">이메일:</td><td>${detail.contact_email || '-'}</td></tr>
+                                <tr><td class="py-1 font-medium">전화번호:</td><td>${detail.contact_phone || '-'}</td></tr>
+                                <tr><td class="py-1 font-medium">진단일시:</td><td>${new Date(detail.created_at).toLocaleString('ko-KR')}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h4 class="font-bold mb-2">재무제표 (단위: 백만원)</h4>
+                        <div class="grid md:grid-cols-3 gap-2 text-sm">
+                            <div>매출액: ${detail.sales?.toLocaleString()}</div>
+                            <div>총자산: ${detail.total_assets?.toLocaleString()}</div>
+                            <div>총부채: ${detail.total_liabilities?.toLocaleString()}</div>
+                            <div>자기자본: ${detail.equity?.toLocaleString()}</div>
+                            <div>영업이익: ${detail.operating_income?.toLocaleString()}</div>
+                            <div>당기순이익: ${detail.net_income?.toLocaleString()}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h4 class="font-bold mb-2">종합 평가</h4>
+                        <p class="text-gray-700">${diagnosisResult.overall_comment || '-'}</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <h4 class="font-bold mb-2">개선 권고사항</h4>
+                        <ul class="list-disc list-inside text-sm text-gray-700">
+                            ${(diagnosisResult.recommendations || []).map(r => `<li>${r}</li>`).join('')}
+                        </ul>
+                    </div>
+                `
+
+                modal.classList.remove('hidden')
+            } catch (error) {
+                console.error('상세 조회 실패:', error)
+                alert('상세 조회 실패: ' + error.message)
+            }
+        }
+
+        // 모달 닫기
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('detailModal').classList.add('hidden')
+        })
+
+        // 필터 적용
+        document.getElementById('applyFilter').addEventListener('click', loadDiagnoses)
+        document.getElementById('resetFilter').addEventListener('click', () => {
+            document.getElementById('searchInput').value = ''
+            document.getElementById('industryFilter').value = ''
+            document.getElementById('startDate').value = ''
+            document.getElementById('endDate').value = ''
+            loadDiagnoses()
+        })
+
+        // 엑셀 다운로드 (간단한 CSV 형식)
+        document.getElementById('exportExcel').addEventListener('click', async () => {
+            try {
+                const data = await apiCall('/api/admin/diagnoses?limit=10000')
+                const csv = [
+                    ['ID', '회사명', '업종코드', '업종명', '규모', '연도', '리스크', '이메일', '전화번호', '진단일시'].join(','),
+                    ...data.data.map(d => [
+                        d.id,
+                        d.company_name,
+                        d.industry_code,
+                        d.industry_name || '',
+                        d.firm_size_type,
+                        d.year,
+                        d.risk_level,
+                        d.contact_email || '',
+                        d.contact_phone || '',
+                        new Date(d.created_at).toLocaleString('ko-KR')
+                    ].join(','))
+                ].join('\\n')
+
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                const link = document.createElement('a')
+                link.href = URL.createObjectURL(blob)
+                link.download = `재무진단이력_${new Date().toISOString().split('T')[0]}.csv`
+                link.click()
+            } catch (error) {
+                console.error('엑셀 다운로드 실패:', error)
+                alert('다운로드 실패: ' + error.message)
+            }
+        })
+
+        // 초기 로드
+        loadStats()
+        loadIndustries()
+        loadDiagnoses()
+
+        // 엔터키로 검색
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loadDiagnoses()
+        })
+    </script>
+</body>
+</html>

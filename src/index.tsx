@@ -80,15 +80,16 @@ app.post('/api/diagnose', async (c) => {
       financials.firm_size_type
     )
 
-    // 진단 이력 저장
+    // 진단 이력 저장 (연락처 포함)
     await DB.prepare(`
       INSERT INTO diagnosis_history (
         company_name, industry_code, firm_size_type, year,
         sales, current_assets, current_liabilities, total_assets, total_liabilities, equity,
         operating_income, net_income, inventory, receivables, interest_expense,
         calc_current_ratio, calc_debt_ratio, calc_equity_ratio, calc_operating_margin,
-        calc_roa, calc_roe, diagnosis_result, risk_level
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        calc_roa, calc_roe, diagnosis_result, risk_level,
+        contact_email, contact_phone
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       financials.company_name,
       financials.industry_code,
@@ -112,7 +113,9 @@ app.post('/api/diagnose', async (c) => {
       roundedRatios.roa || null,
       roundedRatios.roe || null,
       JSON.stringify(diagnosis),
-      diagnosis.risk_level
+      diagnosis.risk_level,
+      (financials as any).contact_email || null,
+      (financials as any).contact_phone || null
     ).run()
 
     return c.json(diagnosis)
@@ -828,6 +831,43 @@ app.get('/', (c) => {
                     </div>
                 </div>
 
+                <!-- 연락처 입력 모달 -->
+                <div id="contactModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">
+                            <i class="fas fa-user-circle text-blue-600 mr-2"></i>
+                            연락처 입력
+                        </h3>
+                        <p class="text-gray-600 mb-6">진단 결과를 확인하려면 연락처를 입력해주세요. (이메일 또는 전화번호 중 하나만 입력)</p>
+                        
+                        <form id="contactForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
+                                <input type="email" id="contactEmail" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    placeholder="your@email.com">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">전화번호</label>
+                                <input type="tel" id="contactPhone" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    placeholder="010-1234-5678">
+                            </div>
+                            <div id="contactError" class="hidden text-red-600 text-sm"></div>
+                            <div class="flex space-x-3">
+                                <button type="button" id="cancelContact" 
+                                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    취소
+                                </button>
+                                <button type="submit" 
+                                    class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                    확인
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <!-- 로딩 -->
                 <div id="loading" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div class="bg-white p-8 rounded-lg shadow-xl">
@@ -893,31 +933,82 @@ app.get('/', (c) => {
                 })
             }
 
-            // 폼 제출
+            // 전역 변수로 진단 데이터 저장
+            let diagnosisData = null
+            let diagnosisResult = null
+
+            // 폼 제출 - 연락처 입력 모달 표시
             document.getElementById('diagnosisForm').addEventListener('submit', async (e) => {
                 e.preventDefault()
                 
-                const loading = document.getElementById('loading')
-                const resultArea = document.getElementById('resultArea')
-                
-                loading.classList.remove('hidden')
-                resultArea.classList.add('hidden')
-
                 const formData = new FormData(e.target)
                 const data = {}
                 formData.forEach((value, key) => {
                     if (value) {
-                        // 콤마 제거 후 숫자로 변환
                         const cleanValue = removeCommas(value)
                         data[key] = isNaN(cleanValue) ? value : parseFloat(cleanValue)
                     }
                 })
+                
+                diagnosisData = data
+                
+                // 연락처 입력 모달 표시
+                document.getElementById('contactModal').classList.remove('hidden')
+                document.getElementById('contactEmail').value = ''
+                document.getElementById('contactPhone').value = ''
+                document.getElementById('contactError').classList.add('hidden')
+            })
+
+            // 연락처 모달 취소
+            document.getElementById('cancelContact').addEventListener('click', () => {
+                document.getElementById('contactModal').classList.add('hidden')
+            })
+
+            // 연락처 입력 및 진단 수행
+            document.getElementById('contactForm').addEventListener('submit', async (e) => {
+                e.preventDefault()
+                
+                const email = document.getElementById('contactEmail').value.trim()
+                const phone = document.getElementById('contactPhone').value.trim()
+                const errorDiv = document.getElementById('contactError')
+                
+                // 연락처 검증
+                if (!email && !phone) {
+                    errorDiv.textContent = '이메일 또는 전화번호 중 하나는 필수입니다.'
+                    errorDiv.classList.remove('hidden')
+                    return
+                }
+                
+                if (email && !validateEmail(email)) {
+                    errorDiv.textContent = '올바른 이메일 형식이 아닙니다.'
+                    errorDiv.classList.remove('hidden')
+                    return
+                }
+                
+                if (phone && !validatePhone(phone)) {
+                    errorDiv.textContent = '올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)'
+                    errorDiv.classList.remove('hidden')
+                    return
+                }
+                
+                // 연락처 추가
+                diagnosisData.contact_email = email || null
+                diagnosisData.contact_phone = phone || null
+                
+                // 모달 닫기
+                document.getElementById('contactModal').classList.add('hidden')
+                
+                // 로딩 표시
+                const loading = document.getElementById('loading')
+                const resultArea = document.getElementById('resultArea')
+                loading.classList.remove('hidden')
+                resultArea.classList.add('hidden')
 
                 try {
                     const response = await fetch('/api/diagnose', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
+                        body: JSON.stringify(diagnosisData)
                     })
 
                     if (!response.ok) {
@@ -925,8 +1016,8 @@ app.get('/', (c) => {
                         throw new Error(error.error || '진단 실패')
                     }
 
-                    const result = await response.json()
-                    displayResult(result)
+                    diagnosisResult = await response.json()
+                    displayResult(diagnosisResult)
                     
                     resultArea.classList.remove('hidden')
                     resultArea.scrollIntoView({ behavior: 'smooth' })
@@ -936,6 +1027,18 @@ app.get('/', (c) => {
                     loading.classList.add('hidden')
                 }
             })
+
+            // 이메일 검증
+            function validateEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                return re.test(email)
+            }
+
+            // 전화번호 검증
+            function validatePhone(phone) {
+                const re = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/
+                return re.test(phone)
+            }
 
             function displayResult(result) {
                 const riskColors = {
@@ -1001,6 +1104,365 @@ app.get('/', (c) => {
     </body>
     </html>
   `)
+})
+
+// 관리자 로그인 페이지
+app.get('/admin/login', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>관리자 로그인 | 재무진단 시스템</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-gray-100 min-h-screen flex items-center justify-center">
+        <div class="max-w-md w-full mx-4">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <div class="text-center mb-8">
+                    <i class="fas fa-user-shield text-5xl text-blue-600 mb-4"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">관리자 로그인</h1>
+                    <p class="text-gray-600 mt-2">중소기업 재무진단 시스템</p>
+                </div>
+
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">아이디</label>
+                        <input type="text" id="username" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
+                        <input type="password" id="password" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div id="errorMessage" class="hidden text-red-600 text-sm"></div>
+                    <button type="submit" 
+                        class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-bold hover:bg-blue-700 transition">
+                        <i class="fas fa-sign-in-alt mr-2"></i>로그인
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <a href="/" class="text-sm text-blue-600 hover:underline">
+                        <i class="fas fa-home mr-1"></i>메인 페이지로 돌아가기
+                    </a>
+                </div>
+
+                <div class="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p class="text-xs text-yellow-800">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>테스트 계정:</strong> admin / admin123
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault()
+                
+                const username = document.getElementById('username').value
+                const password = document.getElementById('password').value
+                const errorDiv = document.getElementById('errorMessage')
+                
+                errorDiv.classList.add('hidden')
+
+                try {
+                    const response = await fetch('/api/admin/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    })
+
+                    const data = await response.json()
+
+                    if (!response.ok) {
+                        throw new Error(data.error || '로그인 실패')
+                    }
+
+                    // 토큰 저장
+                    localStorage.setItem('admin_token', data.token)
+                    localStorage.setItem('admin_user', JSON.stringify(data.admin))
+
+                    // 관리자 페이지로 이동
+                    window.location.href = '/admin'
+                } catch (error) {
+                    errorDiv.textContent = error.message
+                    errorDiv.classList.remove('hidden')
+                }
+            })
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// 관리자 대시보드 페이지 (리다이렉트)
+app.get('/admin', (c) => {
+  // 간단하게 /admin/login으로 리다이렉트하고, 인증 후 대시보드 표시는 클라이언트에서 처리
+  return c.redirect('/admin/dashboard')
+})
+
+// 관리자 대시보드 실제 페이지
+app.get('/admin/dashboard', (c) => {
+  // admin-page.html 파일을 공개 폴더에 복사해서 제공 예정
+  // 현재는 간단한 버전으로 구현
+  return c.html(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>관리자 대시보드</title>
+      <script>
+        // 토큰 체크
+        const token = localStorage.getItem('admin_token')
+        if (!token) {
+          window.location.href = '/admin/login'
+        }
+      </script>
+      <meta http-equiv="refresh" content="0; url=/admin-dashboard.html">
+    </head>
+    <body>
+      <p>Loading...</p>
+    </body>
+    </html>
+  `)
+})
+
+// ====== 관리자 API ======
+
+// 관리자 로그인 API (간단한 비밀번호 체크)
+app.post('/api/admin/login', async (c) => {
+  try {
+    const { DB } = c.env
+    const { username, password } = await c.req.json()
+
+    if (!username || !password) {
+      return c.json({ error: '아이디와 비밀번호를 입력해주세요.' }, 400)
+    }
+
+    // 간단한 MD5 해시 (실제 운영시에는 bcrypt 등 사용 권장)
+    const encoder = new TextEncoder()
+    const data = encoder.encode(password)
+    const hashBuffer = await crypto.subtle.digest('MD5', data).catch(() => {
+      // MD5가 지원되지 않으면 SHA-256 사용
+      return crypto.subtle.digest('SHA-256', data)
+    })
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+
+    const admin = await DB.prepare(
+      'SELECT id, username, full_name, email FROM admin_users WHERE username = ? AND password_hash = ?'
+    ).bind(username, passwordHash).first()
+
+    if (!admin) {
+      return c.json({ error: '아이디 또는 비밀번호가 일치하지 않습니다.' }, 401)
+    }
+
+    // 마지막 로그인 시간 업데이트
+    await DB.prepare(
+      'UPDATE admin_users SET last_login = CURRENT_TIMESTAMP WHERE id = ?'
+    ).bind(admin.id).run()
+
+    // 세션 토큰 생성 (간단한 구현)
+    const token = Buffer.from(`${admin.id}:${Date.now()}`).toString('base64')
+
+    return c.json({ 
+      success: true, 
+      token,
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        full_name: admin.full_name,
+        email: admin.email
+      }
+    })
+  } catch (error) {
+    console.error('로그인 오류:', error)
+    return c.json({ error: '로그인 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 관리자 인증 미들웨어 (간단한 토큰 체크)
+const adminAuth = async (c: any, next: any) => {
+  const authHeader = c.req.header('Authorization')
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({ error: '인증이 필요합니다.' }, 401)
+  }
+
+  try {
+    const token = authHeader.substring(7)
+    const decoded = Buffer.from(token, 'base64').toString()
+    const [adminId, timestamp] = decoded.split(':')
+    
+    // 토큰 유효기간 체크 (24시간)
+    const tokenAge = Date.now() - parseInt(timestamp)
+    if (tokenAge > 24 * 60 * 60 * 1000) {
+      return c.json({ error: '토큰이 만료되었습니다.' }, 401)
+    }
+
+    c.set('adminId', adminId)
+    await next()
+  } catch (error) {
+    return c.json({ error: '유효하지 않은 토큰입니다.' }, 401)
+  }
+}
+
+// 진단 이력 목록 조회 (관리자 전용)
+app.get('/api/admin/diagnoses', adminAuth, async (c) => {
+  try {
+    const { DB } = c.env
+    const { search, industry, startDate, endDate, limit = 100, offset = 0 } = c.req.query()
+
+    let query = `
+      SELECT 
+        dh.id, dh.company_name, dh.industry_code, dh.firm_size_type, dh.year,
+        dh.risk_level, dh.contact_email, dh.contact_phone, dh.created_at,
+        ic.name as industry_name
+      FROM diagnosis_history dh
+      LEFT JOIN industry_codes ic ON dh.industry_code = ic.code
+      WHERE 1=1
+    `
+    const params: any[] = []
+
+    // 필터링
+    if (search) {
+      query += ' AND (dh.company_name LIKE ? OR dh.contact_email LIKE ? OR dh.contact_phone LIKE ?)'
+      const searchParam = `%${search}%`
+      params.push(searchParam, searchParam, searchParam)
+    }
+
+    if (industry) {
+      query += ' AND dh.industry_code = ?'
+      params.push(industry)
+    }
+
+    if (startDate) {
+      query += ' AND DATE(dh.created_at) >= ?'
+      params.push(startDate)
+    }
+
+    if (endDate) {
+      query += ' AND DATE(dh.created_at) <= ?'
+      params.push(endDate)
+    }
+
+    query += ' ORDER BY dh.created_at DESC LIMIT ? OFFSET ?'
+    params.push(parseInt(limit as string), parseInt(offset as string))
+
+    const results = await DB.prepare(query).bind(...params).all()
+    
+    // 총 개수 조회
+    let countQuery = 'SELECT COUNT(*) as total FROM diagnosis_history WHERE 1=1'
+    const countParams: any[] = []
+    
+    if (search) {
+      countQuery += ' AND (company_name LIKE ? OR contact_email LIKE ? OR contact_phone LIKE ?)'
+      const searchParam = `%${search}%`
+      countParams.push(searchParam, searchParam, searchParam)
+    }
+    if (industry) {
+      countQuery += ' AND industry_code = ?'
+      countParams.push(industry)
+    }
+    if (startDate) {
+      countQuery += ' AND DATE(created_at) >= ?'
+      countParams.push(startDate)
+    }
+    if (endDate) {
+      countQuery += ' AND DATE(created_at) <= ?'
+      countParams.push(endDate)
+    }
+
+    const countResult = await DB.prepare(countQuery).bind(...countParams).first<{ total: number }>()
+
+    return c.json({
+      data: results.results,
+      total: countResult?.total || 0,
+      limit: parseInt(limit as string),
+      offset: parseInt(offset as string)
+    })
+  } catch (error) {
+    console.error('진단 이력 조회 오류:', error)
+    return c.json({ error: '조회 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 진단 이력 상세 조회 (관리자 전용)
+app.get('/api/admin/diagnoses/:id', adminAuth, async (c) => {
+  try {
+    const { DB } = c.env
+    const id = c.req.param('id')
+
+    const result = await DB.prepare(`
+      SELECT 
+        dh.*,
+        ic.name as industry_name,
+        ic.category as industry_category
+      FROM diagnosis_history dh
+      LEFT JOIN industry_codes ic ON dh.industry_code = ic.code
+      WHERE dh.id = ?
+    `).bind(id).first()
+
+    if (!result) {
+      return c.json({ error: '해당 진단 이력을 찾을 수 없습니다.' }, 404)
+    }
+
+    return c.json(result)
+  } catch (error) {
+    console.error('진단 상세 조회 오류:', error)
+    return c.json({ error: '조회 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// 통계 API (관리자 전용)
+app.get('/api/admin/stats', adminAuth, async (c) => {
+  try {
+    const { DB } = c.env
+
+    // 총 진단 건수
+    const totalResult = await DB.prepare('SELECT COUNT(*) as total FROM diagnosis_history').first<{ total: number }>()
+    
+    // 오늘 진단 건수
+    const todayResult = await DB.prepare(
+      'SELECT COUNT(*) as today FROM diagnosis_history WHERE DATE(created_at) = DATE("now")'
+    ).first<{ today: number }>()
+    
+    // 업종별 통계
+    const industryStats = await DB.prepare(`
+      SELECT 
+        dh.industry_code, 
+        ic.name as industry_name,
+        COUNT(*) as count
+      FROM diagnosis_history dh
+      LEFT JOIN industry_codes ic ON dh.industry_code = ic.code
+      GROUP BY dh.industry_code
+      ORDER BY count DESC
+      LIMIT 10
+    `).all()
+    
+    // 리스크 레벨별 통계
+    const riskStats = await DB.prepare(`
+      SELECT 
+        risk_level,
+        COUNT(*) as count
+      FROM diagnosis_history
+      GROUP BY risk_level
+    `).all()
+
+    return c.json({
+      total: totalResult?.total || 0,
+      today: todayResult?.today || 0,
+      by_industry: industryStats.results,
+      by_risk: riskStats.results
+    })
+  } catch (error) {
+    console.error('통계 조회 오류:', error)
+    return c.json({ error: '통계 조회 중 오류가 발생했습니다.' }, 500)
+  }
 })
 
 export default app
