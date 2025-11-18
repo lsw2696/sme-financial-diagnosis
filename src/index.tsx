@@ -765,51 +765,24 @@ app.get('/', (c) => {
             document.addEventListener('DOMContentLoaded', () => {
                 const numberInputs = document.querySelectorAll('[data-number-input]')
                 numberInputs.forEach(input => {
-                    // input 이벤트로 실시간 콤마 표시
-                    input.addEventListener('input', (e) => {
-                        let value = e.target.value
-                        
-                        // 숫자와 소수점, 마이너스만 허용
-                        value = value.replace(/[^\d.-]/g, '')
-                        
-                        // 마이너스는 맨 앞에만
-                        if (value.indexOf('-') > 0) {
-                            value = value.replace(/-/g, '')
-                        }
-                        
-                        // 소수점 중복 제거
-                        const parts = value.split('.')
-                        if (parts.length > 2) {
-                            value = parts[0] + '.' + parts.slice(1).join('')
-                        }
-                        
-                        e.target.value = value
+                    // 포커스 시 콤마 제거
+                    input.addEventListener('focus', function() {
+                        this.value = this.value.replace(/,/g, '')
                     })
                     
-                    // blur 이벤트로 포맷팅 (포커스 벗어날 때)
-                    input.addEventListener('blur', (e) => {
-                        let value = e.target.value.replace(/,/g, '')
-                        
-                        if (value && value !== '-' && !isNaN(value)) {
-                            const num = parseFloat(value)
-                            const [integer, decimal] = value.split('.')
-                            
-                            // 정수부분에 콤마 추가
-                            let formatted = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-                            
-                            // 소수점 있으면 추가
-                            if (decimal !== undefined) {
-                                formatted += '.' + decimal
+                    // 포커스 벗어날 때 콤마 추가
+                    input.addEventListener('blur', function() {
+                        let val = this.value.replace(/,/g, '')
+                        if (val && !isNaN(val)) {
+                            // 소수점 처리
+                            if (val.includes('.')) {
+                                const parts = val.split('.')
+                                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                                this.value = parts.join('.')
+                            } else {
+                                this.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
                             }
-                            
-                            e.target.value = formatted
                         }
-                    })
-                    
-                    // focus 이벤트로 콤마 제거 (입력 편의)
-                    input.addEventListener('focus', (e) => {
-                        let value = e.target.value.replace(/,/g, '')
-                        e.target.value = value
                     })
                 })
             })
