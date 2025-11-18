@@ -501,50 +501,68 @@ app.get('/standards', (c) => {
                     return
                 }
 
-                // 업종별로 그룹화
-                const grouped = {}
-                data.forEach(row => {
-                    const key = row.industry_code
-                    if (!grouped[key]) {
-                        grouped[key] = {
-                            industry_code: row.industry_code,
-                            industry_name: row.industry_name,
-                            rows: []
-                        }
-                    }
-                    grouped[key].rows.push(row)
-                })
-
-                // HTML 생성
                 let html = ''
-                Object.values(grouped).forEach(group => {
-                    const rowCount = group.rows.length
-                    group.rows.forEach((row, idx) => {
-                        html += '<tr class="hover:bg-gray-50">'
-                        
-                        // 첫 번째 행에만 업종 표시 (rowspan 사용)
-                        if (idx === 0) {
-                            html += '<td class="border p-2 text-xs align-top" rowspan="' + rowCount + '">' + 
-                                    group.industry_code + '<br/><span class="text-gray-500">' + (group.industry_name || '') + '</span></td>'
+                let prevIndustry = null
+                let industryRowCount = 0
+                let industryStartIndex = 0
+                
+                // 먼저 데이터를 업종별로 정렬
+                data.sort((a, b) => {
+                    if (a.industry_code !== b.industry_code) {
+                        return a.industry_code.localeCompare(b.industry_code)
+                    }
+                    return a.year - b.year
+                })
+                
+                // 각 행 생성
+                data.forEach((row, index) => {
+                    // 새로운 업종이 시작되면
+                    if (row.industry_code !== prevIndustry) {
+                        // 이전 업종의 rowspan 계산
+                        if (prevIndustry !== null && industryRowCount > 0) {
+                            // 이미 생성된 HTML에서 placeholder를 실제 rowspan으로 교체
+                            const placeholder = 'ROWSPAN_' + prevIndustry
+                            html = html.replace(new RegExp(placeholder, 'g'), industryRowCount.toString())
                         }
                         
-                        html += '<td class="border p-2 text-center">' + row.firm_size_type + '</td>' +
-                                '<td class="border p-2 text-center">' + row.year + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.current_ratio || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.quick_ratio || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.debt_ratio || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.equity_ratio || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.operating_margin || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.net_margin || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.roa || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.roe || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.asset_turnover || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.inventory_turnover || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.receivable_turnover || '-') + '</td>' +
-                                '<td class="border p-2 text-right">' + (row.interest_coverage || '-') + '</td>' +
-                                '</tr>'
-                    })
+                        prevIndustry = row.industry_code
+                        industryRowCount = 1
+                        industryStartIndex = index
+                        
+                        // 새 행 시작 - 업종 셀 포함
+                        html += '<tr class="hover:bg-gray-50">'
+                        html += '<td class="border p-2 text-xs align-middle" rowspan="ROWSPAN_' + row.industry_code + '">' + 
+                                '<div class="font-medium">' + row.industry_code + '</div>' +
+                                '<div class="text-gray-500 text-xs">' + (row.industry_name || '') + '</div></td>'
+                    } else {
+                        // 같은 업종 계속
+                        industryRowCount++
+                        html += '<tr class="hover:bg-gray-50">'
+                    }
+                    
+                    // 나머지 컬럼들
+                    html += '<td class="border p-2 text-center">' + row.firm_size_type + '</td>' +
+                            '<td class="border p-2 text-center">' + row.year + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.current_ratio || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.quick_ratio || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.debt_ratio || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.equity_ratio || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.operating_margin || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.net_margin || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.roa || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.roe || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.asset_turnover || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.inventory_turnover || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.receivable_turnover || '-') + '</td>' +
+                            '<td class="border p-2 text-right">' + (row.interest_coverage || '-') + '</td>' +
+                            '</tr>'
                 })
+                
+                // 마지막 업종의 rowspan 처리
+                if (prevIndustry !== null && industryRowCount > 0) {
+                    const placeholder = 'ROWSPAN_' + prevIndustry
+                    html = html.replace(new RegExp(placeholder, 'g'), industryRowCount.toString())
+                }
                 
                 tbody.innerHTML = html
             }
@@ -823,7 +841,7 @@ app.get('/', (c) => {
         <script>
             // 천단위 콤마 추가 함수
             function formatNumber(num) {
-                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                return num.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')
             }
 
             // 콤마 제거 함수
@@ -834,24 +852,29 @@ app.get('/', (c) => {
             // 숫자 입력 필드에 콤마 자동 추가
             document.addEventListener('DOMContentLoaded', () => {
                 const numberInputs = document.querySelectorAll('[data-number-input]')
+                console.log('Found number inputs:', numberInputs.length)
+                
                 numberInputs.forEach(input => {
                     // 포커스 시 콤마 제거
                     input.addEventListener('focus', function() {
+                        console.log('Focus:', this.name)
                         this.value = this.value.replace(/,/g, '')
                     })
                     
                     // 포커스 벗어날 때 콤마 추가
                     input.addEventListener('blur', function() {
+                        console.log('Blur:', this.name, 'value:', this.value)
                         let val = this.value.replace(/,/g, '')
                         if (val && !isNaN(val)) {
                             // 소수점 처리
                             if (val.includes('.')) {
                                 const parts = val.split('.')
-                                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                                parts[0] = parts[0].replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')
                                 this.value = parts.join('.')
                             } else {
-                                this.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                                this.value = val.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')
                             }
+                            console.log('Formatted:', this.value)
                         }
                     })
                 })

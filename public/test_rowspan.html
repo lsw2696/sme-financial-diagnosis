@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Rowspan Test</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        td, th { border: 1px solid #ccc; padding: 8px; }
+        .industry-cell { background-color: #f0f0f0; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>업종 Rowspan 테스트</h1>
+    <table id="testTable">
+        <thead>
+            <tr>
+                <th>업종</th>
+                <th>규모</th>
+                <th>연도</th>
+                <th>유동비율</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+
+    <script>
+        // 테스트 데이터 (C11 업종 - 4개 레코드)
+        const testData = [
+            { industry_code: 'C11', industry_name: '음료 제조업', firm_size_type: '외감', year: 2022, current_ratio: 150 },
+            { industry_code: 'C11', industry_name: '음료 제조업', firm_size_type: '외감', year: 2023, current_ratio: 155 },
+            { industry_code: 'C11', industry_name: '음료 제조업', firm_size_type: '비외감', year: 2022, current_ratio: 140 },
+            { industry_code: 'C11', industry_name: '음료 제조업', firm_size_type: '비외감', year: 2023, current_ratio: 145 },
+            { industry_code: 'C13', industry_name: '섬유제품 제조업', firm_size_type: '외감', year: 2022, current_ratio: 130 },
+            { industry_code: 'C13', industry_name: '섬유제품 제조업', firm_size_type: '외감', year: 2023, current_ratio: 135 }
+        ]
+
+        function displayData(data) {
+            const tbody = document.getElementById('tbody')
+            
+            let html = ''
+            let prevIndustry = null
+            let industryRowCount = 0
+            
+            // 먼저 데이터를 업종별로 정렬
+            data.sort((a, b) => {
+                if (a.industry_code !== b.industry_code) {
+                    return a.industry_code.localeCompare(b.industry_code)
+                }
+                return a.year - b.year
+            })
+            
+            console.log('Sorted data:', data)
+            
+            // 각 행 생성
+            data.forEach((row, index) => {
+                console.log(`Processing row ${index}:`, row.industry_code, row.year, 'prevIndustry:', prevIndustry, 'rowCount:', industryRowCount)
+                
+                // 새로운 업종이 시작되면
+                if (row.industry_code !== prevIndustry) {
+                    // 이전 업종의 rowspan 계산
+                    if (prevIndustry !== null && industryRowCount > 0) {
+                        console.log(`Replacing ROWSPAN_${prevIndustry} with ${industryRowCount}`)
+                        const placeholder = 'ROWSPAN_' + prevIndustry
+                        html = html.replace(new RegExp(placeholder, 'g'), industryRowCount.toString())
+                    }
+                    
+                    prevIndustry = row.industry_code
+                    industryRowCount = 1
+                    
+                    // 새 행 시작 - 업종 셀 포함
+                    html += '<tr>'
+                    html += '<td class="industry-cell" rowspan="ROWSPAN_' + row.industry_code + '">' + 
+                            row.industry_code + '<br>' + row.industry_name + '</td>'
+                } else {
+                    // 같은 업종 계속
+                    industryRowCount++
+                    html += '<tr>'
+                }
+                
+                // 나머지 컬럼들
+                html += '<td>' + row.firm_size_type + '</td>' +
+                        '<td>' + row.year + '</td>' +
+                        '<td>' + row.current_ratio + '</td>' +
+                        '</tr>'
+            })
+            
+            // 마지막 업종의 rowspan 처리
+            if (prevIndustry !== null && industryRowCount > 0) {
+                console.log(`Final replace: ROWSPAN_${prevIndustry} with ${industryRowCount}`)
+                const placeholder = 'ROWSPAN_' + prevIndustry
+                html = html.replace(new RegExp(placeholder, 'g'), industryRowCount.toString())
+            }
+            
+            console.log('Final HTML:', html)
+            tbody.innerHTML = html
+        }
+
+        displayData(testData)
+    </script>
+</body>
+</html>
