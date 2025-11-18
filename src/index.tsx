@@ -838,22 +838,30 @@ app.get('/', (c) => {
                             <i class="fas fa-user-circle text-blue-600 mr-2"></i>
                             연락처 입력
                         </h3>
-                        <p class="text-gray-600 mb-6">진단 결과를 확인하려면 연락처를 입력해주세요. (이메일 또는 전화번호 중 하나만 입력)</p>
+                        <p class="text-gray-600 mb-6">
+                            진단 결과를 확인하려면 <strong>이메일 또는 전화번호 중 하나</strong>를 입력해주세요.
+                        </p>
                         
                         <form id="contactForm" class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
-                                <input type="email" id="contactEmail" 
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    이메일 <span class="text-gray-400">(선택)</span>
+                                </label>
+                                <input type="text" id="contactEmail" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    placeholder="your@email.com">
+                                    placeholder="예: hong@naver.com">
+                                <p class="text-xs text-gray-500 mt-1">형식: example@domain.com</p>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">전화번호</label>
-                                <input type="tel" id="contactPhone" 
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    전화번호 <span class="text-gray-400">(선택)</span>
+                                </label>
+                                <input type="text" id="contactPhone" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    placeholder="010-1234-5678">
+                                    placeholder="예: 010-1234-5678 또는 01012345678">
+                                <p class="text-xs text-gray-500 mt-1">형식: 010-1234-5678, 01012345678, 02-123-4567 등</p>
                             </div>
-                            <div id="contactError" class="hidden text-red-600 text-sm"></div>
+                            <div id="contactError" class="hidden text-red-600 text-sm font-medium bg-red-50 p-3 rounded"></div>
                             <div class="flex space-x-3">
                                 <button type="button" id="cancelContact" 
                                     class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -1046,16 +1054,31 @@ app.get('/', (c) => {
                 }
             })
 
-            // 이메일 검증
+            // 이메일 검증 (더 유연한 패턴)
             function validateEmail(email) {
-                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                // 기본적인 이메일 형식만 체크 (example@domain.com)
+                const re = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
                 return re.test(email)
             }
 
-            // 전화번호 검증
+            // 전화번호 검증 (다양한 형식 허용)
             function validatePhone(phone) {
-                const re = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/
-                return re.test(phone)
+                // 하이픈 제거 후 숫자만 추출
+                const cleaned = phone.replace(/[^0-9]/g, '')
+                
+                // 010, 011, 016, 017, 018, 019로 시작하는 10-11자리 또는
+                // 02, 031-070으로 시작하는 9-11자리 허용
+                if (cleaned.length >= 9 && cleaned.length <= 11) {
+                    // 휴대폰: 010, 011, 016, 017, 018, 019
+                    if (/^01[0-9]/.test(cleaned) && cleaned.length >= 10) {
+                        return true
+                    }
+                    // 일반전화: 02, 031-070
+                    if (/^0[2-7]/.test(cleaned) && cleaned.length >= 9) {
+                        return true
+                    }
+                }
+                return false
             }
 
             function displayResult(result) {
