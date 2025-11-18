@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "webapp",
+  "name": "sme-financial-diagnosis",
   "compatibility_date": "2025-11-17",
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
@@ -9,8 +9,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "webapp-production",
-      "database_id": "placeholder-will-be-replaced-after-creation"
+      "database_name": "sme-financial-diagnosis-production",
+      "database_id": "128b0ad4-eaf8-4add-8dd9-88ea7d4d2b10"
     }
   ]
 }

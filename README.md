@@ -21,16 +21,21 @@
 
 ## 🌐 배포 URL
 
+- **🚀 프로덕션 (Cloudflare Pages)**: https://sme-financial-diagnosis.pages.dev
 - **개발 서버**: https://3000-iz9isfoa1wiovn6biofxf-de59bda9.sandbox.novita.ai
-- **페이지**:
-  - `/` - 메인 진단 페이지
-  - `/standards` - 신보 업종별 표준지표 조회
-  - `/formulas` - 재무비율 계산식 안내
-- **API 엔드포인트**: 
-  - GET `/api/industries` - 업종코드 목록
-  - GET `/api/standards` - 신보 표준지표 전체 조회
-  - POST `/api/diagnose` - 재무진단 수행
-  - GET `/api/history` - 진단 이력 조회
+- **GitHub**: https://github.com/lsw2696/sme-financial-diagnosis
+
+### 페이지
+- `/` - 메인 재무진단 페이지 (천단위 콤마 입력)
+- `/standards` - 신보 업종별 표준지표 조회 (필터링 기능)
+- `/formulas` - 재무비율 계산식 안내 (12개 지표)
+- `/test` - 숫자 입력 테스트 페이지
+
+### API 엔드포인트
+- `GET /api/industries` - 업종코드 목록 (52개)
+- `GET /api/standards` - 신보 표준지표 전체 조회 (42개)
+- `POST /api/diagnose` - 재무진단 수행
+- `GET /api/history` - 진단 이력 조회
 
 ## 📊 데이터 아키텍처
 
@@ -144,9 +149,11 @@ webapp/
 ## 📝 개발 정보
 
 - **개발 환경**: Cloudflare Pages + D1 Database
-- **로컬 개발**: `npm run dev:sandbox`
+- **프로덕션**: https://sme-financial-diagnosis.pages.dev
+- **D1 Database ID**: `128b0ad4-eaf8-4add-8dd9-88ea7d4d2b10`
+- **로컬 개발**: `npm run dev:sandbox` (로컬 SQLite 자동 생성)
 - **데이터베이스 초기화**: `npm run db:reset`
-- **배포**: `npm run deploy`
+- **프로덕션 배포**: `npm run deploy` 또는 `wrangler pages deploy dist`
 
 ## 💬 고객 지원
 
@@ -155,8 +162,10 @@ webapp/
 ---
 
 **개발자**: 우서기 (컨설턴트/경영지도사/개업공인중개사)  
+**프로덕션 URL**: https://sme-financial-diagnosis.pages.dev  
+**GitHub**: https://github.com/lsw2696/sme-financial-diagnosis  
 **최종 업데이트**: 2025-11-18  
-**상태**: ✅ 운영 중
+**배포 상태**: ✅ Cloudflare Pages 운영 중
 
 ## 🐛 최근 버그 수정 (2025-11-18)
 
