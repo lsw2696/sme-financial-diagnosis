@@ -878,6 +878,24 @@ app.get('/', (c) => {
             </div>
         </div>
 
+        <!-- 푸터 -->
+        <footer class="bg-gray-800 text-white py-6 mt-12">
+            <div class="max-w-7xl mx-auto px-4 text-center">
+                <div class="mb-3">
+                    <p class="text-lg font-bold">리베르컨설팅</p>
+                    <p class="text-gray-300 mt-2">
+                        <i class="fas fa-phone mr-2"></i>
+                        <a href="tel:02-525-8870" class="hover:text-blue-400 transition">02-525-8870</a>
+                    </p>
+                </div>
+                <div class="border-t border-gray-700 pt-4 mt-4">
+                    <p class="text-sm text-gray-400">
+                        © 2025 리베르컨설팅. All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </footer>
+
         <script>
             // 천단위 콤마 추가 함수
             function formatNumber(num) {
@@ -1243,15 +1261,14 @@ app.post('/api/admin/login', async (c) => {
       return c.json({ error: '아이디와 비밀번호를 입력해주세요.' }, 400)
     }
 
-    // 간단한 MD5 해시 (실제 운영시에는 bcrypt 등 사용 권장)
+    // SHA-256 해시로 비밀번호 검증
     const encoder = new TextEncoder()
     const data = encoder.encode(password)
-    const hashBuffer = await crypto.subtle.digest('MD5', data).catch(() => {
-      // MD5가 지원되지 않으면 SHA-256 사용
-      return crypto.subtle.digest('SHA-256', data)
-    })
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
     const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    
+    console.log('Login attempt:', username, 'Hash:', passwordHash)
 
     const admin = await DB.prepare(
       'SELECT id, username, full_name, email FROM admin_users WHERE username = ? AND password_hash = ?'
