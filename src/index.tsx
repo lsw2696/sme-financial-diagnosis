@@ -556,6 +556,76 @@ app.get('/standards', (c) => {
   `)
 })
 
+// 테스트 페이지
+app.get('/test', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>입력 테스트</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="p-8">
+      <h1 class="text-2xl font-bold mb-4">숫자 입력 테스트</h1>
+      <div class="space-y-4">
+        <div>
+          <label class="block mb-2">테스트 입력 (포커스 시 콤마 제거, blur 시 콤마 추가)</label>
+          <input type="text" data-number-input class="border p-2 rounded w-full" placeholder="숫자를 입력하세요">
+        </div>
+        <div>
+          <label class="block mb-2">일반 입력 (비교용)</label>
+          <input type="text" class="border p-2 rounded w-full" placeholder="일반 입력">
+        </div>
+        <div id="log" class="mt-4 p-4 bg-gray-100 rounded"></div>
+      </div>
+      
+      <script>
+        const log = document.getElementById('log')
+        function addLog(msg) {
+          log.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + msg + '</div>'
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          addLog('DOMContentLoaded 이벤트 발생')
+          const numberInputs = document.querySelectorAll('[data-number-input]')
+          addLog('발견된 입력 필드: ' + numberInputs.length + '개')
+          
+          numberInputs.forEach(input => {
+            addLog('이벤트 리스너 등록 중...')
+            
+            input.addEventListener('focus', function() {
+              addLog('Focus: "' + this.value + '" → 콤마 제거')
+              this.value = this.value.replace(/,/g, '')
+              addLog('Focus 후: "' + this.value + '"')
+            })
+            
+            input.addEventListener('blur', function() {
+              addLog('Blur: "' + this.value + '"')
+              let val = this.value.replace(/,/g, '')
+              if (val && !isNaN(val)) {
+                if (val.includes('.')) {
+                  const parts = val.split('.')
+                  parts[0] = parts[0].replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')
+                  this.value = parts.join('.')
+                } else {
+                  this.value = val.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')
+                }
+                addLog('Blur 후: "' + this.value + '"')
+              }
+            })
+            
+            input.addEventListener('input', function() {
+              addLog('Input: "' + this.value + '"')
+            })
+          })
+        })
+      </script>
+    </body>
+    </html>
+  `)
+})
+
 // 메인 페이지
 app.get('/', (c) => {
   return c.html(`
